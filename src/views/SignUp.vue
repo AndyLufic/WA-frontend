@@ -1,67 +1,49 @@
 <template>
-  <div class="signup">
-    <h1>Sign Up</h1>
-    <form @submit.prevent="signUp">
-      <input type="text" placeholder="Full Name" required />
-      <input type="email" placeholder="Email" required />
-      <input type="password" placeholder="Password" required />
-      <input type="password" placeholder="Confirm Password" required />
-      <button type="submit">Sign Up</button>
+  <div class="auth-page">
+    <h2>Sign Up</h2>
+    <form @submit.prevent="submit">
+      <input v-model="email" type="email" placeholder="Email" required />
+      <input v-model="password" type="password" placeholder="Password" required />
+      <select v-model="role" required>
+        <option disabled value="">Choose role</option>
+        <option value="customer">Customer</option>
+        <option value="provider">Provider</option>
+      </select>
+      <button :disabled="auth.loading">Sign Up</button>
     </form>
-    <p>
-      Already have an account?
-      <router-link to="/customer-login">Log in here</router-link>.
-    </p>
+    <p v-if="auth.error" class="error">{{ auth.error }}</p>
   </div>
 </template>
 
 <script>
+import { ref } from "vue";
+import { useAuth } from "@/stores/auth";
+import { useRouter } from "vue-router";
+
 export default {
-  name:"SignUp",
-  methods: {
-    signUp() {
-      // Add sign-up logic here
-      alert('Sign up successful!');
-    },
-  },
+  setup() {
+    const auth = useAuth();
+    const router = useRouter();
+
+    const email = ref("");
+    const password = ref("");
+    const role = ref("");
+
+    async function submit() {
+      try {
+        await auth.signup({ email: email.value, password: password.value, role: role.value });
+        router.push("/"); // redirect home
+      } catch (e) {
+        console.error("Sign up failed:", e);
+      }
+    }
+
+    return { auth, email, password, role, submit };
+  }
 };
 </script>
 
-<style scoped>
-.signup {
-  text-align: center;
-  margin-top: 2rem;
-}
-
-input {
-  display: block;
-  margin: 0.5rem auto;
-  padding: 0.5rem;
-  width: 200px;
-}
-
-button {
-  padding: 0.5rem 1rem;
-  background-color: #42b983;
-  color: white;
-  border: none;
-  cursor: pointer;
-}
-
-button:hover {
-  background-color: #369f6e;
-}
-
-p {
-  margin-top: 1rem;
-}
-
-a {
-  color: #42b983;
-  text-decoration: none;
-}
-
-a:hover {
-  text-decoration: underline;
-}
+<style>
+.auth-page { max-width: 400px; margin: 2rem auto; display: flex; flex-direction: column; gap: 1rem; }
+.error { color: red; }
 </style>
