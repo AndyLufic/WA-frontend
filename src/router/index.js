@@ -5,6 +5,8 @@ import ProviderLogin from '../views/ProviderLogin.vue'; // Import ProviderLogin 
 import SignUp from '../views/SignUp.vue'; // Import SignUp component
 
 
+
+
 const routes = [
   { path: '/', name: "HomePage", component: HomePage },
   { path: '/customer-login', name: "CustomerLogin", component: CustomerLogin },
