@@ -1,52 +1,68 @@
-import { createRouter, createWebHistory } from "vue-router";
-import HomePage from "@/views/HomePage.vue";
-import CustomerLogin from "@/views/CustomerLogin.vue";
-import ProviderLogin from "@/views/ProviderLogin.vue";
-import SignUp from "@/views/SignUp.vue";
-import { useAuth } from "@/stores/auth";
-import ProviderDashboard from "@/views/ProviderDashboard.vue";
+// WA-frontend/src/router/index.js
+import { createRouter, createWebHistory } from 'vue-router';
+import { useAuth } from '@/stores/auth';
+
+// Views
+import HomePage from '@/views/HomePage.vue';
+import CustomerLogin from '@/views/CustomerLogin.vue';
+import ProviderLogin from '@/views/ProviderLogin.vue';
+import SignUp from '@/views/SignUp.vue';
+import ProfilePage from '@/views/ProfilePage.vue';
+import ProviderDashboard from '@/views/ProviderDashboard.vue'; // ← keep only if you have this view
 
 const routes = [
-  { path: "/", component: HomePage },
-  { path: "/customer-login", component: CustomerLogin },
-  { path: "/provider-login", component: ProviderLogin },
-  { path: "/sign-up", component: SignUp },
-  { path: "/provider-dashboard", component: ProviderDashboard }
+  { path: '/', name: 'HomePage', component: HomePage },
+
+  { path: '/customer-login', name: 'CustomerLogin', component: CustomerLogin },
+  { path: '/provider-login', name: 'ProviderLogin', component: ProviderLogin },
+  { path: '/sign-up', name: 'SignUp', component: SignUp },
+
+  // Authenticated user page
+  { path: '/profile', name: 'Profile', component: ProfilePage, meta: { requiresAuth: true } },
+
+  // Provider-only page (requires login + provider role)
+  {
+    path: '/provider-dashboard',
+    name: 'ProviderDashboard',
+    component: ProviderDashboard,
+    meta: { requiresAuth: true, requiresProvider: true },
+  },
+
+  // (optional) catch-all 404
+  // { path: '/:pathMatch(.*)*', name: 'NotFound', component: NotFoundPage },
 ];
 
 const router = createRouter({
   history: createWebHistory(),
-  routes
+  routes,
+  // optional: reset scroll on route change
+  scrollBehavior() {
+    return { top: 0 };
+  },
 });
 
-// --- Global guard ---
-router.beforeEach((to, from, next) => {
+// Global guard: auth + provider role
+router.beforeEach((to) => {
   const auth = useAuth();
+  // ensure session is loaded on hard refresh
+  auth.loadFromStorage();
 
-  // Prevent logged-in users from re-visiting login/signup
-  if (auth.isLogged && ["/customer-login", "/provider-login", "/sign-up"].includes(to.path)) {
-    return next("/"); // send them home
+  // must be logged in?
+  if (to.meta?.requiresAuth && !auth.isLogged) {
+    return {
+      path: '/customer-login',
+      query: { r: to.fullPath }, // so we can redirect back after login
+    };
   }
 
-  // Prevent customers from opening provider login
-  if (to.path === "/provider-login" && auth.isCustomer) {
-    alert("You are logged in as a customer, not a provider!");
-    return next("/");
+  // must be provider?
+  if (to.meta?.requiresProvider && !auth.isProvider) {
+    // if logged in but not provider, send home (or to a "no access" page)
+    return { path: '/', replace: true };
   }
 
-  // Prevent providers from opening customer login
-  if (to.path === "/customer-login" && auth.isProvider) {
-    alert("You are logged in as a provider, not a customer!");
-    return next("/");
-  }
-  
-  if (to.path === "/provider-dashboard" && !auth.isProvider) {
-  alert("Only providers can access the dashboard");
-  return next("/");
-  }
-
-
-  next();
+  // allow navigation
+  return true;
 });
 
 export default router;

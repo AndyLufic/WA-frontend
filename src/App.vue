@@ -3,7 +3,9 @@
     <nav>
       <div class="nav-container">
         <div class="logo">Scooter Rental</div>
+
         <div class="nav-links">
+          <!-- Logged OUT -->
           <template v-if="!auth.isLogged">
             <router-link to="/">Home</router-link>
             <router-link to="/customer-login">Customer Login</router-link>
@@ -11,41 +13,50 @@
             <router-link to="/sign-up">Sign Up</router-link>
           </template>
 
+          <!-- Logged IN -->
           <template v-else>
-  <router-link to="/">Home</router-link>
-  <router-link v-if="auth.isProvider" to="/provider-dashboard">Dashboard</router-link>
-  <span class="user-info">
-    {{ auth.user.email }} ({{ auth.user.role }})
-  </span>
-  <button @click="logout">Logout</button>
-</template>
-
+            <router-link to="/">Home</router-link>
+            <UserMenu
+              :name="auth.displayName"
+              :role="auth.user.role"
+              @logout="logout"
+            />
+          </template>
         </div>
       </div>
     </nav>
 
-    <!-- Give the routed content a fixed-height area -->
+    <!-- The routed page fills the rest of the viewport -->
     <main class="page">
       <router-view />
     </main>
+    <AppToasts /> 
   </div>
 </template>
 
 <script>
 import { useAuth } from "@/stores/auth";
+import UserMenu from "@/components/UserMenu.vue";
+import AppToasts from "@/components/Toasts.vue"; 
 
 export default {
   name: "App",
+  components: { UserMenu, AppToasts },
   setup() {
     const auth = useAuth();
-    const logout = () => { auth.logout(); window.location.href = "/"; };
+    // ensure we load stored session on refresh
+    auth.loadFromStorage();
+    const logout = () => {
+      auth.logout();
+      window.location.href = "/"; // simple redirect to home
+    };
     return { auth, logout };
-  }
+  },
 };
 </script>
 
 <style>
-:root { --nav-h: 64px; }          /* adjust if your nav is taller/shorter */
+:root { --nav-h: 64px; }
 html, body, #app { height: 100%; margin: 0; }
 
 nav {
@@ -78,7 +89,6 @@ nav .logo { font-size: 1.5rem; font-weight: bold; }
 button { background: #e74c3c; border: none; color: white; padding: 0.4rem 0.8rem; border-radius: 4px; cursor: pointer; }
 button:hover { background: #c0392b; }
 
-/* 👇 This makes the routed view fill the rest of the screen */
 .page { height: calc(100vh - var(--nav-h)); }
-.page > * { height: 100%; }       /* lets HomePage fill .page */
+.page > * { height: 100%; }
 </style>
