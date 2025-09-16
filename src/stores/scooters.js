@@ -1,70 +1,49 @@
-import { defineStore } from "pinia";
-import axios from "axios";
-import { useAuth } from "./auth";
+import { defineStore } from 'pinia';
+import axios from 'axios';
+import { useAuth } from './auth';
 
-export const useScooters = defineStore("scooters", {
+export const useScooters = defineStore('scooters', {
   state: () => ({
-    items: [],
-    loading: false,
-    error: null,
+    items: [],   // latest fetched scooters (public or mine, depending on call)
   }),
 
   actions: {
+    // Public list (optionally filter by location)
     async fetchAll(params = {}) {
-      this.loading = true;
-      this.error = null;
-      try {
-        const { data } = await axios.get("/api/scooters", { params });
-        this.items = data;
-        return data;
-      } catch (e) {
-        this.error = e?.response?.data?.error || e.message;
-        throw e;
-      } finally {
-        this.loading = false;
-      }
+      const { data } = await axios.get('/api/scooters', { params });
+      this.items = data;
+      return data;
+    },
+
+    // Provider-owned list (optionally filter by location)
+    async fetchMine(params = {}) {
+      const auth = useAuth();
+      const { data } = await axios.get('/api/scooters/mine', {
+        params,
+        headers: auth.authHeader,
+      });
+      this.items = data;
+      return data;
     },
 
     async create(payload) {
       const auth = useAuth();
-      try {
-        const { data } = await axios.post("/api/scooters", payload, {
-          headers: auth.authHeader,
-        });
-        this.items.push(data);
-        return data;
-      } catch (e) {
-        this.error = e?.response?.data?.error || e.message;
-        throw e;
-      }
+      const { data } = await axios.post('/api/scooters', payload, { headers: auth.authHeader });
+      this.items.unshift(data);
+      return data;
     },
 
     async update(id, patch) {
       const auth = useAuth();
-      try {
-        const { data } = await axios.patch(`/api/scooters/${id}`, patch, {
-          headers: auth.authHeader,
-        });
-        const i = this.items.findIndex((s) => s._id === id);
-        if (i !== -1) this.items[i] = data;
-        return data;
-      } catch (e) {
-        this.error = e?.response?.data?.error || e.message;
-        throw e;
-      }
+      const { data } = await axios.patch(`/api/scooters/${id}`, patch, { headers: auth.authHeader });
+      this.items = this.items.map(s => (s._id === id ? data : s));
+      return data;
     },
 
     async remove(id) {
       const auth = useAuth();
-      try {
-        await axios.delete(`/api/scooters/${id}`, {
-          headers: auth.authHeader,
-        });
-        this.items = this.items.filter((s) => s._id !== id);
-      } catch (e) {
-        this.error = e?.response?.data?.error || e.message;
-        throw e;
-      }
+      await axios.delete(`/api/scooters/${id}`, { headers: auth.authHeader });
+      this.items = this.items.filter(s => s._id !== id);
     },
   },
 });
