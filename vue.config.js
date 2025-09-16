@@ -6,7 +6,7 @@ module.exports = {
   devServer: {
     proxy: {
       '^/api': {
-        target: 'http://localhost:4000',
+        target: 'https://wa-backend-gw0k.onrender.com',
         changeOrigin: true
       }
     }
